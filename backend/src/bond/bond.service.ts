@@ -6,19 +6,17 @@ import {
   FrequencyStrategy,
 } from './types/bond.types';
 import { BondInputDto } from './dto/bond-input.dto';
-import { AnnualStrategy } from './strategies/frequency.strategy';
-import { SemiAnnualStrategy } from './strategies/frequency.strategy';
+import { FrequencyStrategyFactory } from './strategies/frequency-strategy.factory';
 
 @Injectable()
 export class BondService {
   private readonly YTM_TOLERANCE = 0.0001;
   private readonly YTM_MAX_ITERATIONS = 10000;
 
+  constructor(private readonly strategyFactory: FrequencyStrategyFactory) {}
+
   calculate(dto: BondInputDto): BondResult {
-    const strategy =
-      dto.frequency === 'semi-annual'
-        ? new SemiAnnualStrategy()
-        : new AnnualStrategy();
+    const strategy = this.strategyFactory.getStrategy(dto.frequency);
 
     const periodsPerYear = strategy.getPeriodsPerYear();
     const totalPeriods = dto.yearsToMaturity * periodsPerYear;

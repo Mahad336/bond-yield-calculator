@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BondService } from '../src/bond/bond.service';
+import { FrequencyStrategyFactory } from '../src/bond/strategies/frequency-strategy.factory';
 
 describe('BondService', () => {
   let service: BondService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BondService],
+      providers: [BondService, FrequencyStrategyFactory],
     }).compile();
 
     service = module.get<BondService>(BondService);
