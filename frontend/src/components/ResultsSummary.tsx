@@ -34,7 +34,7 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
   const statusStyle = statusStyles[results.status];
 
   return (
-    <div className="grid grid-cols-2 gap-4 animate-in">
+    <div className="grid grid-cols-2 gap-4 results-fade-in">
       <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 border-t-4 border-t-teal-500">
         <p className="text-sm text-slate-400 mb-1">Current Yield</p>
         <p className="text-2xl font-bold text-white tabular-nums">
