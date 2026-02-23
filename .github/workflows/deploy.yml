@@ -1,0 +1,64 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build frontend
+        run: VITE_API_URL= npm run build -w frontend
+
+      - name: Build backend
+        run: npm run build -w backend
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          SSH_USER=${SSH_USER:-ubuntu}
+          
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key.pem
+          chmod 600 ~/.ssh/deploy_key.pem
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          # Deploy frontend
+          scp -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -r frontend/dist/* ${SSH_USER}@${EC2_HOST}:/var/www/bond-calculator/frontend/
+
+          # Deploy backend (dist + package.json only)
+          ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_HOST} "mkdir -p /tmp/bond-deploy"
+          scp -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no backend/package.json ${SSH_USER}@${EC2_HOST}:/tmp/bond-deploy/
+          scp -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -r backend/dist ${SSH_USER}@${EC2_HOST}:/tmp/bond-deploy/
+
+          # Install deps and restart on EC2
+          ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_HOST} << 'REMOTE'
+            sudo cp -r /tmp/bond-deploy/dist /var/www/bond-calculator/backend/
+            sudo cp /tmp/bond-deploy/package.json /var/www/bond-calculator/backend/
+            sudo chown -R ubuntu:ubuntu /var/www/bond-calculator/backend
+            cd /var/www/bond-calculator/backend && npm install --omit=dev
+            pm2 restart bond-backend || pm2 start dist/src/main.js --name bond-backend
+            pm2 save
+            rm -rf /tmp/bond-deploy
+          REMOTE
+
+          # Cleanup
+          rm -f ~/.ssh/deploy_key.pem
