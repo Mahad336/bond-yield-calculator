@@ -1,0 +1,15 @@
+{
+  "name": "bond-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "backend": "npm run start:dev -w backend",
+    "frontend": "npm run dev -w frontend",
+    "test": "npm run test -w backend"
+  }
+}
