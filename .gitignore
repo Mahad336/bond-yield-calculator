@@ -1,6 +1,8 @@
 node_modules
 dist
 .env
+deploy-temp
+*.pem
 .env.local
 *.log
 .DS_Store
